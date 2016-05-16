@@ -1,4 +1,7 @@
 # proyecto-RFID-NFC-
-Código usados en el proyecto de final de ciclo, control de acceso mediante RFID y NFC.
+## Control de acceso mediante RFID y NFC ##
+Proyecto Realizado por Carlos Cruz.
 
-Cada código fuente pertenece a sus autores, un enlace a su web original estará incluido en la cabecera de cada uno de ellos.
+Códigos usados en el proyecto de final de ciclo 2º Administración de Sistemas Informáticos en Red (IES Virgen del Carmen, Jaén)
+
+Algunos códigos pertenecen a sus autores, un enlace a su web original estará incluido en la cabecera de cada uno de ellos.
