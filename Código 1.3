@@ -1,0 +1,183 @@
+## Este código ha sido sacado de: http://miarduinounotieneunblog.blogspot.com.es/2016/02/control-de-acceso-con-el-modulo-rfid.html ##
+
+/*  TITULO: Control de acceso con el módulo RFID RC522.
+
+    AUTOR:
+    
+    MARIANO DEL CAMPO GARCÍA (@2016) --> INGENIERO TÉCNICO INDUSTRIAL ESPECIALIDAD ELECTRÓNICA
+    - FACEBOOK: https://www.facebook.com/mariano.delcampogarcia
+    - TWITTER: https://twitter.com/MarianoCampoGa
+    - CORREO: marianodc83@gmail.com
+    
+    
+    DESCRIPCIÓN DEL PROGRAMA
+    
+    Con este programa controlamos unos LEDS y un zumbador mediante mediante tecnología inalámbrica 
+    RFID y NFC, de la siguiente manera:
+    - Cuando Acercamos una tarjeta MIFARE de 1K al módulo RFID RC522 se encenderá el LED
+      verde durante 3 segundos. 
+    - Si acercamos el llavero se encenderá el LED rojo durante 3 segundos.
+    - Por último, si acercamos nuestro Smartphone con el NFC activado, se encenderá el LED rojo 
+      durante 3 segundos a la vez que se activa el zumbador.
+    
+   
+    ESQUEMA DE CONEXION
+    
+                                      +-----+
+         +----[PWR]-------------------| USB |--+
+         |                            +-----+  |
+         |         GND/RST2  [ ][ ]            |
+         |       MOSI2/SCK2  [ ][ ]  A5/SCL[ ] |    
+         |          5V/MISO2 [ ][ ]  A4/SDA[ ] |    
+         |                             AREF[ ] |
+         |                              GND[ ] |
+         | [ ]N/C                    SCK/13[ ] |   SCK módulo RFID RC522
+         | [ ]IOREF                 MISO/12[ ] |   MISO módulo RFID RC522
+         | [ ]RST                   MOSI/11[ ]~|   MOSI módulo RFID RC522
+         | [ ]3V3    +---+               10[ ]~|   SDA módulo RFID RC522
+         | [ ]5v    -| A |-               9[ ]~|   RST módulo RFID RC522
+         | [ ]GND   -| R |-               8[ ] |   LED_Verde(+)
+         | [ ]GND   -| D |-                    |
+         | [ ]Vin   -| U |-               7[ ] |   LED_Rojo(+)
+         |          -| I |-               6[ ]~|   Zumbador(+)
+         | [ ]A0    -| N |-               5[ ]~|   
+         | [ ]A1    -| O |-               4[ ] |   
+         | [ ]A2     +---+           INT1/3[ ]~|   
+         | [ ]A3                     INT0/2[ ] |   
+         | [ ]A4/SDA  RST SCK MISO     TX>1[ ] |   
+         | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] |   
+         |            [ ] [ ] [ ]              |
+         |  UNO_R3    GND MOSI 5V  ____________/
+          \_______________________/
+  
+  NOTAS:
+  
+   - Alimentación del módulo RFID RC522:
+     - GND --> GND de Arduino.
+     - +3.3V --> +3.3V de Arduino.
+   - Cátodo(-) de los LEDS a GND a través de una R=220 omhs (diferente para cada uno).
+   - Zumbador(-) a GND.
+
+*/
+
+  // Incluimos librerías necesarias
+  #include <SPI.h>
+  #include <RFID.h>
+  
+  #define SS_PIN 10 // Pin digital para el pin SDA del módulo RFID RC522
+  #define RST_PIN 9 // Pin digital para el pin RST del módulo RFID RC522
+  
+  // Declaramos el objeto de tipo RFID
+  RFID rfid(SS_PIN, RST_PIN);
+  
+  int LED_Verde = 8; // Pin digital para el LED de color verde
+  int LED_Rojo = 7; // Pin digital para el LED de color rojo
+  int zumbador = 6; // Pin digital para el Zumbador piezoeléctrico
+  int numero_serie[5]; // Número de serie de la tarjeta que nuestro sensor RFID detectará
+  // Números de serie válidos correspondientes a los números de serie de las dos tarjetas MIFARE.
+  int numero_serie_valido[2][5] = {{20,182,242,95,15},{176,144,83,157,238}}; 
+  
+  // Variables auxiliares
+  int i = 0 ;
+  int valido = 0;
+  
+  void setup()
+  { 
+    Serial.begin(9600); // Comienzo de la comunicación serie
+    
+    pinMode(LED_Verde, OUTPUT); // Pin digital 8 como salida
+    pinMode(LED_Rojo, OUTPUT); // Pin digital 7 como salida
+    pinMode(zumbador, OUTPUT); // Pin digital 6 como salida
+    
+    SPI.begin(); // Comienzo de la comunicación SPI
+    rfid.init();   // Activación del lector RFID
+  }
+  
+  void loop()
+  { 
+    i=0; 
+    
+    // Si hay una tarjeta o llavero RFID presente
+    if (rfid.isCard()) 
+    {
+      // Si se ha podido leer el número de serie de la tarjeta o del llavero RFID
+      if (rfid.readCardSerial()) 
+      { 
+        // Guardamos y presentamos por el monitor serie el número de serie leído
+        Serial.print("Numero de serie: "); 
+        for(int i=0; i<=4 ; i++)
+        {
+          numero_serie[i] = rfid.serNum[i];
+          Serial.print(numero_serie[i]);
+          if(i<=3)
+          {
+            Serial.print("/");
+          }        
+        }            
+        Serial.print(" --> ");
+        delay(500);
+        
+        // Comparamos el número de serie leído con los 2 números de serie válidos      
+        for(int j=0; j<=5; ) // El número de serie tiene 5 valores
+        {
+          if((numero_serie[j]) == (numero_serie_valido[i][j]))
+          {
+            j++;
+            valido++;
+          }    
+          else
+          {
+            i++;
+            j=0;
+          }
+    
+          if(i >= 2) // Números de serie válidos, en este caso 2
+          {
+            j=6;
+          }
+        }
+      
+        // Si el número de serie leído coincide con alguno de los 2 números de serie válidos  
+        if (valido==5)
+        {
+          usuario_valido();
+        } 
+        // Si el número de serie leído no coincide con ninguno de los 2 números de serie válidos  
+        else
+        {
+          usuario_no_valido();
+        } 
+        valido = 0;
+      }
+    }
+    // Se cierra la secuencia RFID
+    rfid.halt(); 
+  }
+  
+  // Función que se ejecuta cuando el usuario es válido
+  void usuario_valido()
+  {
+    Serial.println("Usuario valido!!!"); 
+    digitalWrite(LED_Verde,HIGH); // LED Verde encendido
+    digitalWrite(LED_Rojo,LOW);// LED Rojo apagado
+    delay(3000);
+    digitalWrite(LED_Verde,LOW);// LED Verde apagado
+  }
+  
+  // Función que se ejecuta cuando el usuario no es válido
+  void usuario_no_valido()
+  {
+    Serial.println("Usuario no valido!!!");
+    // Solo se ejecuta si acercamos el NFC del Smartphone y está activado
+    if(numero_serie[0] == 8) // Primer dígito del número de serie del NFC de tu Smartphone
+    {
+      digitalWrite(zumbador,HIGH);// Zumbador encendido
+      numero_serie[0] = 3;
+    }  
+    digitalWrite(LED_Rojo,HIGH);// LED Rojo encendido
+    digitalWrite(LED_Verde,LOW);// LED Verde apagado
+    delay(3000);
+    digitalWrite(LED_Rojo,LOW); // LED Rojo apagado
+    digitalWrite(zumbador,LOW); // Zumbador apagado
+  }
+
