@@ -183,5 +183,5 @@
     digitalWrite(LED_Verde,LOW);// LED Verde apagado
     delay(3000);
     digitalWrite(LED_Rojo,LOW); // LED Rojo apagado
-    digitalWrite(zumbador,LOW); // Zumbador apagado
+    digitalWrite(zumbador,LOW); // Zumbador apagado //NO LO ESTOY USANDO EN EL CIRCUITO.
   }
