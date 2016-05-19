@@ -15,6 +15,7 @@
     - Cuando Acercamos una tarjeta MIFARE de 1K al módulo RFID RC522 se encenderá el LED
       verde durante 3 segundos. 
     - Si acercamos el llavero se encenderá el LED rojo durante 3 segundos.
+    - Cuando la identificación coincide, el servo se abrirá, en caso contrario se quedará estático.
     - Por último, si acercamos nuestro Smartphone con el NFC activado, se encenderá el LED rojo 
       durante 3 segundos a la vez que se activa el zumbador.
     
