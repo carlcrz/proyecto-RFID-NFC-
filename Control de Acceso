@@ -1,11 +1,11 @@
-  Control de acceso con el módulo RFID RC522.
+/*  TITULO: Control de acceso con el módulo RFID RC522.
 
     AUTOR:
     
     MARIANO DEL CAMPO GARCÍA (2016) 
-    
+
     MODIFICADO POR:
-    
+
     CARLOS CRUZ GONZÁLEZ (2016)
     
     DESCRIPCIÓN DEL PROGRAMA
@@ -15,7 +15,6 @@
     - Cuando Acercamos una tarjeta MIFARE de 1K al módulo RFID RC522 se encenderá el LED
       verde durante 3 segundos. 
     - Si acercamos el llavero se encenderá el LED rojo durante 3 segundos.
-    - Cuando la identificación coincide, el servo se abrirá, en caso contrario se quedará estático.
     - Por último, si acercamos nuestro Smartphone con el NFC activado, se encenderá el LED rojo 
       durante 3 segundos a la vez que se activa el zumbador.
     
@@ -86,8 +85,8 @@
    void setup()
   { 
     Serial.begin(9600); // Comienzo de la comunicación serie
-    servo.attach(3);
-    servo.write(90);
+    servo.attach(3);    // Indicamos el pin en el que está conectado el servo
+    servo.write(90);    // Indicamos el movimiento que hará el servo al comienzo por defecto, 90 grados
     
     pinMode(LED_Verde, OUTPUT); // Pin digital 8 como salida
     pinMode(LED_Rojo, OUTPUT); // Pin digital 7 como salida
@@ -163,10 +162,10 @@
   {
     Serial.println("Usuario valido!!!"); 
     digitalWrite(LED_Verde,HIGH); // LED Verde encendido
-    servo.write(-90);    
+    servo.write(-90);           // Servo girará -90 grados
     digitalWrite(LED_Rojo,LOW);// LED Rojo apagado
-    delay(2000);
-    servo.write(90);
+    delay(2000);              
+    servo.write(90);          // El servo recupera su posición inicial volviendo a girar 90 grados.
     digitalWrite(LED_Verde,LOW);// LED Verde apagado
   }
   
@@ -186,3 +185,4 @@
     digitalWrite(LED_Rojo,LOW); // LED Rojo apagado
     digitalWrite(zumbador,LOW); // Zumbador apagado
   }
+
