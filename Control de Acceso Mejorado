@@ -1,0 +1,174 @@
+/*https://www.arduino.cc/en/Reference/HomePage */
+/*  TITULO: Control de acceso con el módulo RFID RC522.
+
+    AUTOR:
+    
+    MARIANO DEL CAMPO GARCÍA (2016) 
+
+    MODIFICADO POR:
+
+    CARLOS CRUZ GONZÁLEZ (2016)
+    RAFAEL GARCÍA CABRERA (2016)
+    
+    DESCRIPCIÓN DEL PROGRAMA
+    
+    Con este programa controlamos unos LEDS y un zumbador mediante mediante tecnología inalámbrica 
+    RFID y NFC, de la siguiente manera:
+    - Cuando Acercamos una tarjeta MIFARE de 1K al módulo RFID RC522 se encenderá el LED
+      verde durante 3 segundos. 
+    - Si acercamos el llavero se encenderá el LED rojo durante 3 segundos.
+    
+    ESQUEMA DE CONEXION
+    
+                                      +-----+
+         +----[PWR]-------------------| USB |--+
+         |                            +-----+  |
+         |         GND/RST2  [ ][ ]            |
+         |       MOSI2/SCK2  [ ][ ]  A5/SCL[ ] |    
+         |          5V/MISO2 [ ][ ]  A4/SDA[ ] |    
+         |                             AREF[ ] |
+         |                              GND[ ] |
+         | [ ]N/C                    SCK/13[ ] |   SCK módulo RFID RC522
+         | [ ]IOREF                 MISO/12[ ] |   MISO módulo RFID RC522
+         | [ ]RST                   MOSI/11[ ]~|   MOSI módulo RFID RC522
+         | [ ]3V3    +---+               10[ ]~|   SDA módulo RFID RC522
+         | [ ]5v    -| A |-               9[ ]~|   RST módulo RFID RC522
+         | [ ]GND   -| R |-               8[ ] |   LED_Verde(+)
+         | [ ]GND   -| D |-                    |
+         | [ ]Vin   -| U |-               7[ ] |   LED_Rojo(+)
+         |          -| I |-               6[ ]~|   Zumbador(+)
+         | [ ]A0    -| N |-               5[ ]~|   
+         | [ ]A1    -| O |-               4[ ] |   
+         | [ ]A2     +---+           INT1/3[ ]~|   
+         | [ ]A3                     INT0/2[ ] |   
+         | [ ]A4/SDA  RST SCK MISO     TX>1[ ] |   
+         | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] |   
+         |            [ ] [ ] [ ]              |
+         |  UNO_R3    GND MOSI 5V  ____________/
+          \_______________________/
+  
+  NOTAS:
+  
+   - Alimentación del módulo RFID RC522:
+     - GND --> GND de Arduino.
+     - +3.3V --> +3.3V de Arduino.
+   - Cátodo(-) de los LEDS a GND a través de una R=220 omhs (diferente para cada uno).
+   - Zumbador(-) a GND.
+
+*/
+
+  // Incluimos librerías necesarias
+  #include <SPI.h>
+  #include <RFID.h>
+  #include <Servo.h>
+
+  Servo servo;
+
+  #define SS_PIN 10 // Pin digital para el pin SDA del módulo RFID RC522
+  #define RST_PIN 9 // Pin digital para el pin RST del módulo RFID RC522
+  
+  // Declaramos el objeto de tipo RFID
+  RFID rfid(SS_PIN, RST_PIN);
+  
+  int LED_Verde = 8; // Pin digital para el LED de color verde
+  int LED_Rojo = 7; // Pin digital para el LED de color rojo
+  int zumbador = 6; // Pin digital para el Zumbador piezoeléctrico
+  int numero_serie[5]; // Número de serie de la tarjeta que nuestro sensor RFID detectará
+  // Números de serie válidos correspondientes a los números de serie de las dos tarjetas MIFARE.
+  int numero_serie_valido[3][5] = {{123,55,235,117,210},{129,172,1,250,214},{33,252,22,160,107}}; 
+  
+  // Usuarios correspodientes a cad numero_serie_valido
+  String usuarios[]={"Rafael García", "Manuel J. Ceballos", "Miguel Ángel Palomares"};
+  String roles[]={"Profesor IAW", "Profesor ASO", "Profesor Tutor"};
+ 
+  // Variables auxiliares
+  int correcta = 0;  // la tarjeta será correcta si coinciden los 5 números
+  int ok = 0;
+   void setup()
+  { 
+    Serial.begin(9600); // Comienzo de la comunicación serie
+    servo.attach(3);    // Indicamos el pin en el que está conectado el servo
+    servo.write(90);    // Indicamos el movimiento que hará el servo al comienzo por defecto, 90 grados
+    
+    pinMode(LED_Verde, OUTPUT); // Pin digital 8 como salida
+    pinMode(LED_Rojo, OUTPUT); // Pin digital 7 como salida
+    pinMode(zumbador, OUTPUT); //Pin digital 6 como salida
+      
+    SPI.begin(); // Comienzo de la comunicación SPI
+    rfid.init();   // Activación del lector RFID
+  }
+  
+  void loop()
+  {  
+    correcta = 0; 
+    ok = 0;
+      
+    // Si hay una tarjeta o llavero RFID presente
+    if (rfid.isCard()) 
+    {
+      // Si se ha podido leer el número de serie de la tarjeta o del llavero RFID
+      if (rfid.readCardSerial()) 
+      { 
+        // Guardamos y presentamos por el monitor serie el número de serie leído
+        Serial.print("Numero de serie: "); 
+        for(int i=0; i<5 ; i++)
+        {
+          numero_serie[i] = rfid.serNum[i];
+          Serial.print(numero_serie[i]);
+          if(i<=3) Serial.print("/"); 
+        }            
+        Serial.print(" --> ");
+        delay(500);
+
+        // Comparamos el número de serie leído con los 3 números de serie válidos    
+        // t tarjetas, n --> 5 números por tarjeta  
+        for (int t=0; t<3; t++){
+             for (int n=0; n<5; n++){
+                if (numero_serie[n]== numero_serie_valido[t][n]) correcta++;
+                else { 
+                    correcta = 0; 
+                    break;  // sale del bucle n porque falla algún número     
+                } 
+            } // cierre for n     
+
+            if (correcta == 5) {                  
+                correcta = 0;  // para las siguientes comprobaciones 
+                usuario_valido(usuarios[t], roles[t]);
+                ok = 1;  // ha salido mensaje de válido
+                break; //salir del bucle t porque ha encontrado tarjeta válida
+            }             
+        }// cierre for t
+        if (ok == 0) usuario_no_valido();             
+    }
+    // Se cierra la secuencia RFID
+    rfid.halt(); 
+  }
+  }
+  
+  void usuario_valido(String usuario, String rol)
+  { 
+    String cadena; 
+    Serial.println("Acceso Permitido");
+    cadena = "Usuario: " + usuario;
+    Serial.println(cadena);
+    cadena = "Rol: " + rol;
+    Serial.println(cadena);
+    digitalWrite(LED_Verde,HIGH); // LED Verde encendido
+    servo.write(-90);           // Servo girará -90 grados
+    digitalWrite(LED_Rojo,LOW);// LED Rojo apagado
+    delay(2000);              
+    servo.write(90);          // El servo recupera su posición inicial volviendo a girar 90 grados.
+    digitalWrite(LED_Verde,LOW);// LED Verde apagado
+   }
+  
+  // Función que se ejecuta cuando el usuario no es válido
+  void usuario_no_valido()
+  {
+    Serial.println("Identificación Incorrecta. Acceso Denegado");
+    digitalWrite(zumbador,HIGH); // Zumbador encendido
+    digitalWrite(LED_Rojo,HIGH);// LED Rojo encendido
+    digitalWrite(LED_Verde,LOW);// LED Verde apagado
+    delay(3000);
+    digitalWrite(LED_Rojo,LOW); // LED Rojo apagado
+    digitalWrite(zumbador,LOW); // Zumbador apagado
+  }
