@@ -1,0 +1,45 @@
+<?php session_start(); ob_start();?>
+ <!--  Hier wordt de layout geladen voor de indexpagina -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Pas op scherm</title>
+<script src="http://cdn.jquerytools.org/1.2.5/full/jquery.tools.min.js"></script>
+
+<script type="text/javascript">
+function delayer(){ //functie voor het refreshen van de pagina
+	window.location = "index.php";
+}
+</script>
+
+</head>
+
+<body style='padding: 0px; margin: 0px;' onload="setTimeout('delayer()', 1)"><!-- Hier wordt de functie aangeroepen -->
+
+<?php
+	$fp = fsockopen("127.0.0.1", 9001, $errno, $errstr); //127.0.0.1 = ip van localhost, 9001 = port die door de processingserver wordt geopend
+if (!$fp) {
+    echo "$errstr ($errno)<br />\n";
+} else {
+    $out = "GET / HTTP/1.1\r\n";
+    $out .= "Host: 127.0.0.1\r\n";
+    $out .= "Connection: Close\r\n\r\n";
+    fwrite($fp, $out);
+		$_SESSION['tag'] = fgets($fp, 9); //haalt 8 tekens op. Een tag op de hva studentenpas heeft 8 tekens. Deze wordt hier in de sessie genaamd 'tag' geplaatst.
+        if($_SESSION['tag']=='04a3fb42' ) //als er een sessie is met 'tag' redirect dan naar een andere pagina
+		{
+			header( 'Location: https://www.twitter.com' ) ; //verander deze pagina, naar de pagina waar je de tag heen wilt sturen via de sessie
+			ob_end_clean();
+		}
+       else if ($_SESSION['tag']=='04f08c42' ) //als er een sessie is met 'tag' redirect dan naar een andere pagina
+		{
+			header( 'Location: https://www.guildwars2.com' ) ; //verander deze pagina, naar de pagina waar je de tag heen wilt sturen via de sessie
+			ob_end_clean();
+		}
+    fclose($fp);
+	
+}
+?>
+</body>
+</html>
